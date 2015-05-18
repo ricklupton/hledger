@@ -50,7 +50,7 @@
 >>>
 2009/09/10 Flubber Co
     income:unknown          $-50
-    assets:myacct            $50
+    assets:myacct            $50 = $200
 
 >>>2 /using conversion rules file.*t.rules/
 >>>=0

@@ -178,8 +178,9 @@ postingAsLines elideamount ps p =
     postinglines
     ++ newlinecomments
   where
-    postinglines = map rstrip $ lines $ concatTopPadded [showacct p, "  ", amount, samelinecomment]
+    postinglines = map rstrip $ lines $ concatTopPadded [showacct p, "  ", amount, assertion, samelinecomment]
     amount = if elideamount then "" else showamt (pamount p)
+    assertion = maybe "" ((" = "++) . showMixedAmount) $ pbalanceassertion p
     (samelinecomment, newlinecomments) =
       case renderCommentLines (pcomment p) of []   -> ("",[])
                                               c:cs -> (c,cs)
@@ -209,6 +210,12 @@ tests_postingAsLines = [
       "    ; pcomment2",
       "    ;   tag3: val3  "
       ]
+    posting{
+      paccount="a",
+      pamount=Mixed [usd 1],
+      pbalanceassertion=Just $ Mixed [usd 2]
+      }
+     `gives` ["    a         $1.00 = $2.00"]
  ]
 
 indent :: String -> String
