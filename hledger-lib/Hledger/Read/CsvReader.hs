@@ -239,7 +239,7 @@ BARE-FIELD-NAME: any CHAR except space, tab, #, ;
 
 FIELD-ASSIGNMENT: JOURNAL-FIELD ASSIGNMENT-SEPARATOR FIELD-VALUE
 
-JOURNAL-FIELD: date | date2 | status | code | description | comment | account1 | account2 | amount | JOURNAL-PSEUDO-FIELD
+JOURNAL-FIELD: date | date2 | status | code | description | comment | account1 | account2 | amount | balance | JOURNAL-PSEUDO-FIELD
 
 JOURNAL-PSEUDO-FIELD: amount-in | amount-out | currency
 
@@ -489,6 +489,7 @@ journalfieldnames =
   ,"code"
   ,"description"
   ,"amount"
+  ,"balance"
   ,"account1"
   ,"account2"
   ,"comment"
@@ -617,22 +618,25 @@ transactionFromCsvRecord sourcepos rules record = t
     precomment  = maybe "" render $ mfieldtemplate "precomment"
     currency    = maybe (fromMaybe "" mdefaultcurrency) render $ mfieldtemplate "currency"
     amountstr   = (currency++) $ negateIfParenthesised $ getAmountStr rules record
-    amount      = either amounterror (Mixed . (:[])) $ runParser (amountp <* eof) nullctx "" amountstr
-    amounterror err = error' $ unlines
-      ["error: could not parse \""++amountstr++"\" as an amount"
-      ,showRecord record
-      ,"the amount rule is:      "++(fromMaybe "" $ mfieldtemplate "amount")
-      ,"the currency rule is:    "++(fromMaybe "unspecified" $ mfieldtemplate "currency")
-      ,"the default-currency is: "++fromMaybe "unspecified" mdefaultcurrency
-      ,"the parse error is:      "++show err
-      ,"you may need to "
-       ++"change your amount or currency rules, "
-       ++"or "++maybe "add a" (const "change your") mskip++" skip rule"
-      ]
+    amount      = either (amounterror amountstr "amount") (Mixed . (:[])) $ parseAmount amountstr
     -- Using costOfMixedAmount here to allow complex costs like "10 GBP @@ 15 USD".
     -- Aim is to have "10 GBP @@ 15 USD" applied to account2, but have "-15USD" applied to account1
     amount1        = costOfMixedAmount amount
     amount2        = (-amount)
+    balancestr  = ((currency++) . negateIfParenthesised . render) <$> mfieldtemplate "balance"
+    balance     = either (amounterror (fromMaybe "" balancestr) "balance") (Mixed . (:[])) <$> parseAmount <$> balancestr
+    parseAmount = runParser (amountp <* eof) nullctx ""
+    amounterror str balanceOrAmount err = error' $ unlines
+      ["error: could not parse \""++str++"\" as a " ++ balanceOrAmount
+      ,showRecord record
+      ,"the " ++ balanceOrAmount ++ " rule is:      "++(fromMaybe "" $ mfieldtemplate balanceOrAmount)
+      ,"the currency rule is:    "++(fromMaybe "unspecified" $ mfieldtemplate "currency")
+      ,"the default-currency is: "++fromMaybe "unspecified" mdefaultcurrency
+      ,"the parse error is:      "++show err
+      ,"you may need to "
+       ++"change your " ++ balanceOrAmount ++ " or currency rules, "
+       ++"or "++maybe "add a" (const "change your") mskip++" skip rule"
+      ]
     s `or` def  = if null s then def else s
     defaccount1 = fromMaybe "unknown" $ mdirective "default-account1"
     defaccount2 = case isNegativeMixedAmount amount2 of
@@ -653,7 +657,7 @@ transactionFromCsvRecord sourcepos rules record = t
       tpreceding_comment_lines = precomment,
       tpostings                =
         [posting {paccount=account2, pamount=amount2, ptransaction=Just t}
-        ,posting {paccount=account1, pamount=amount1, ptransaction=Just t}
+        ,posting {paccount=account1, pamount=amount1, ptransaction=Just t, pbalanceassertion=balance}
         ]
       }
 
