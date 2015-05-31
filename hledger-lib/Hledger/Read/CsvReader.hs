@@ -623,7 +623,7 @@ transactionFromCsvRecord sourcepos rules record = t
     -- Aim is to have "10 GBP @@ 15 USD" applied to account2, but have "-15USD" applied to account1
     amount1        = costOfMixedAmount amount
     amount2        = (-amount)
-    balancestr  = ((currency++) . negateIfParenthesised . render) <$> mfieldtemplate "balance"
+    balancestr  = ((currency++) . negateIfParenthesised) <$> maybeGetBalanceStr rules record
     balance     = either (amounterror (fromMaybe "" balancestr) "balance") (Mixed . (:[])) <$> parseAmount <$> balancestr
     parseAmount = runParser (amountp <* eof) nullctx ""
     amounterror str balanceOrAmount err = error' $ unlines
@@ -677,6 +677,17 @@ getAmountStr rules record =
     (Nothing, Just "", Just o)  -> negateStr o
     (Nothing, Just _,  Just _)  -> error' $ "both amount-in and amount-out have a value\n"++showRecord record
     _                           -> error' $ "found values for amount and for amount-in/amount-out - please use either amount or amount-in/amount-out\n"++showRecord record
+
+maybeGetBalanceStr :: CsvRules -> CsvRecord -> Maybe String
+maybeGetBalanceStr rules record =
+ let
+   mbalance   = getEffectiveAssignment rules record "balance"
+   render     = fmap (strip . renderTemplate rules record)
+ in
+  case (render mbalance) of
+    Just "" -> Nothing
+    Nothing -> Nothing
+    Just a  -> Just a
 
 negateIfParenthesised :: String -> String
 negateIfParenthesised ('(':s) | lastMay s == Just ')' = negateStr $ init s
