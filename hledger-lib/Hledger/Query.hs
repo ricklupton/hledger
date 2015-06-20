@@ -10,6 +10,7 @@ module Hledger.Query (
   -- * Query and QueryOpt
   Query(..),
   QueryOpt(..),
+  OrdPlus(..),
   -- * parsing
   parseQuery,
   simplifyQuery,
