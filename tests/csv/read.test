@@ -69,3 +69,13 @@
 
 >>>2 /using conversion rules file.*t.rules/
 >>>=0
+
+# 8. does nothing with empty balance field if balance negated
+ rm -rf t.rules$$; printf 'fields date, description, amount, balance\nbalance (%%balance)\ndate-format %%d/%%Y/%%m\ncurrency $\naccount1 assets:myacct\n' >t.rules$$; echo '10/2009/09,Flubber Co,50,' | hledgerdev -f- print --rules-file t.rules$$; rm -rf t.rules$$
+>>>
+2009/09/10 Flubber Co
+    income:unknown          $-50
+    assets:myacct            $50
+
+>>>2 /using conversion rules file.*t.rules/
+>>>=0

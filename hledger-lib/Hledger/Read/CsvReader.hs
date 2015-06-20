@@ -621,8 +621,8 @@ transactionFromCsvRecord sourcepos rules record = t
     amount      = either (amounterror amountstr "amount") (Mixed . (:[])) $ parseAmount amountstr
     -- Using costOfMixedAmount here to allow complex costs like "10 GBP @@ 15 USD".
     -- Aim is to have "10 GBP @@ 15 USD" applied to account2, but have "-15USD" applied to account1
-    amount1        = costOfMixedAmount amount
-    amount2        = (-amount)
+    amount1     = costOfMixedAmount amount
+    amount2     = (-amount)
     balancestr  = ((currency++) . negateIfParenthesised) <$> maybeGetBalanceStr rules record
     balance     = either (amounterror (fromMaybe "" balancestr) "balance") (Mixed . (:[])) <$> parseAmount <$> balancestr
     parseAmount = runParser (amountp <* eof) nullctx ""
@@ -685,9 +685,10 @@ maybeGetBalanceStr rules record =
    render     = fmap (strip . renderTemplate rules record)
  in
   case (render mbalance) of
-    Just "" -> Nothing
-    Nothing -> Nothing
-    Just a  -> Just a
+    Just ""   -> Nothing
+    Just "()" -> Nothing
+    Nothing   -> Nothing
+    Just a    -> Just a
 
 negateIfParenthesised :: String -> String
 negateIfParenthesised ('(':s) | lastMay s == Just ')' = negateStr $ init s
