@@ -613,7 +613,7 @@ transactionFromCsvRecord sourcepos rules record = t
               ,"the parse error is:      "++show err
               ]
     code        = maybe "" render $ mfieldtemplate "code"
-    description = maybe "" render $ mfieldtemplate "description"
+    description = stripStatus $ maybe "" render $ mfieldtemplate "description"
     comment     = maybe "" render $ mfieldtemplate "comment"
     precomment  = maybe "" render $ mfieldtemplate "precomment"
     currency    = maybe (fromMaybe "" mdefaultcurrency) render $ mfieldtemplate "currency"
@@ -697,6 +697,11 @@ negateIfParenthesised s                               = s
 negateStr :: String -> String
 negateStr ('-':s) = s
 negateStr s       = '-':s
+
+stripStatus :: String -> String
+stripStatus ('*':s) = s
+stripStatus ('!':s) = s
+stripStatus s       = s
 
 -- | Show a (approximate) recreation of the original CSV record.
 showRecord :: CsvRecord -> String

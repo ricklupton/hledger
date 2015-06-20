@@ -79,3 +79,17 @@
 
 >>>2 /using conversion rules file.*t.rules/
 >>>=0
+
+# 9. removes leading * or ! from description
+ rm -rf t.rules$$; printf 'fields date, description, amount\ndate-format %%d/%%Y/%%m\ncurrency $\naccount1 assets:myacct\n' >t.rules$$; printf '10/2009/09,*Flubber Co,50\n10/2009/10,!Blubber Co,50' | hledgerdev -f- print --rules-file t.rules$$; rm -rf t.rules$$
+>>>
+2009/09/10 Flubber Co
+    income:unknown          $-50
+    assets:myacct            $50
+
+2009/10/10 Blubber Co
+    income:unknown          $-50
+    assets:myacct            $50
+
+>>>2 /using conversion rules file.*t.rules/
+>>>=0
